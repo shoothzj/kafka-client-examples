@@ -2,13 +2,16 @@ package com.github.shoothzj.kafka.client.examples;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -59,7 +62,17 @@ public abstract class KafkaConsumerThread extends Thread {
             KafkaConsumer<String, String> consumer = null;
             try {
                 consumer = new KafkaConsumer<>(props);
-                consumer.subscribe(Collections.singletonList(topic));
+                consumer.subscribe(Collections.singletonList(topic), new ConsumerRebalanceListener() {
+                    @Override
+                    public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+
+                    }
+
+                    @Override
+                    public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+                        KafkaConsumerThread.this.onPartitionsAssigned(partitions);
+                    }
+                });
                 this.consumer = consumer;
                 this.initSuccess = true;
             } catch (Exception ex) {
@@ -81,6 +94,9 @@ public abstract class KafkaConsumerThread extends Thread {
         if (initSuccess) {
             doConsume(consumer.poll(Duration.ofMillis(500)));
         }
+    }
+
+    protected void onPartitionsAssigned(Collection<TopicPartition> partitions) {
     }
 
     protected abstract void doConsume(ConsumerRecords<String, String> records);

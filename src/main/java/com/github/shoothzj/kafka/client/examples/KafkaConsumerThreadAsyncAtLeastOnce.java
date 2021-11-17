@@ -6,6 +6,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -62,6 +63,13 @@ public class KafkaConsumerThreadAsyncAtLeastOnce extends KafkaConsumerThread {
                 log.error("commit offset failed ", exception);
             }
         });
+    }
+
+    @Override
+    protected void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+        for (TopicPartition partition : partitions) {
+            skipListMap.remove(partition);
+        }
     }
 
     static class OffsetHelper {

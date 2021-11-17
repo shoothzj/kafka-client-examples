@@ -334,13 +334,16 @@ public class ExampleKafkaProducerSyncStrictlyOrdered {
 ```java
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -391,7 +394,17 @@ public abstract class KafkaConsumerThread extends Thread {
             KafkaConsumer<String, String> consumer = null;
             try {
                 consumer = new KafkaConsumer<>(props);
-                consumer.subscribe(Collections.singletonList(topic));
+                consumer.subscribe(Collections.singletonList(topic), new ConsumerRebalanceListener() {
+                    @Override
+                    public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+
+                    }
+
+                    @Override
+                    public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+                        KafkaConsumerThread.this.onPartitionsAssigned(partitions);
+                    }
+                });
                 this.consumer = consumer;
                 this.initSuccess = true;
             } catch (Exception ex) {
@@ -413,6 +426,9 @@ public abstract class KafkaConsumerThread extends Thread {
         if (initSuccess) {
             doConsume(consumer.poll(Duration.ofMillis(500)));
         }
+    }
+
+    protected void onPartitionsAssigned(Collection<TopicPartition> partitions) {
     }
 
     protected abstract void doConsume(ConsumerRecords<String, String> records);
@@ -451,11 +467,10 @@ public abstract class KafkaConsumerThread extends Thread {
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
-import java.time.Duration;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -476,10 +491,9 @@ public class KafkaConsumerThreadAsyncAtLeastOnce extends KafkaConsumerThread {
     }
 
     @Override
-    protected void doConsume(KafkaConsumer<String, String> consumer) {
-        final ConsumerRecords<String, String> consumerRecords = consumer.poll(Duration.ofMillis(500));
+    protected void doConsume(ConsumerRecords<String, String> records) {
         Set<TopicPartition> set = new HashSet<>();
-        for (ConsumerRecord<String, String> record : consumerRecords) {
+        for (ConsumerRecord<String, String> record : records) {
             final TopicPartition topicPartition = new TopicPartition(record.topic(), record.partition());
             set.add(topicPartition);
             skipListMap.putIfAbsent(topicPartition, new OffsetHelper(record.offset() - 1));
@@ -515,11 +529,18 @@ public class KafkaConsumerThreadAsyncAtLeastOnce extends KafkaConsumerThread {
         });
     }
 
+    @Override
+    protected void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+        for (TopicPartition partition : partitions) {
+            skipListMap.remove(partition);
+        }
+    }
+
     static class OffsetHelper {
 
         long lastCommitOffset;
 
-        ConcurrentSkipListSet<Long> skipListSet;
+        final ConcurrentSkipListSet<Long> skipListSet;
 
         public OffsetHelper(long offset) {
             this.lastCommitOffset = offset;
@@ -739,4 +760,4 @@ public abstract class KafkaConsumerAutoRecoveryThread extends Thread {
 
 ## 致谢
 
-感谢 [天翔](https://github.com/Jack-Jiang)、 [志伟](https://github.com/xuzhiweiand)和[李雪](https://github.com/tracy-java)的审稿。
+感谢 [天翔](https://github.com/Jack-Jiang)、 [志伟](https://github.com/xuzhiweiand)和 [李雪](https://github.com/tracy-java)的审稿。
