@@ -10,6 +10,7 @@ repositories {
 }
 
 dependencies {
+    annotationProcessor("org.projectlombok:lombok:1.18.22")
     compileOnly("org.projectlombok:lombok:1.18.22")
     implementation("org.apache.kafka:kafka-clients:3.0.0")
     implementation("io.netty:netty-common:4.1.70.Final")
