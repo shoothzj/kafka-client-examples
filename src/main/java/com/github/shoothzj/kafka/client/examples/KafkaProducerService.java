@@ -56,7 +56,6 @@ public class KafkaProducerService {
                 if (retryTimes < maxRetryTimes) {
                     log.warn("kafka msg key {} send failed, begin to retry {} times exception is ", key, retryTimes, exception);
                     timer.newTimeout(timeout -> KafkaProducerService.this.sendMsgWithRetry(topic, key, value, retryTimes + 1, maxRetryTimes), 1L << retryTimes, TimeUnit.SECONDS);
-                    this.sendMsgWithRetry(topic, key, value, retryTimes + 1, maxRetryTimes);
                     return;
                 }
                 log.error("kafka msg key {} send failed, exception is ", key, exception);

@@ -239,7 +239,6 @@ public class KafkaProducersInit {
                 if (retryTimes < maxRetryTimes) {
                     log.warn("kafka msg key {} send failed, begin to retry {} times exception is ", key, retryTimes, exception);
                     timer.newTimeout(timeout -> ExampleKafkaProducerService.this.sendMsgWithRetry(topic, key, value, retryTimes + 1, maxRetryTimes), 1L << retryTimes, TimeUnit.SECONDS);
-                    this.sendMsgWithRetry(topic, key, value, retryTimes + 1, maxRetryTimes);
                     return;
                 }
                 log.error("kafka msg key {} send failed, exception is ", key, exception);
@@ -732,13 +731,13 @@ public abstract class KafkaConsumerAutoRecoveryThread extends Thread {
                 }
             }
         }
-        if (needBuild) {
+        if (!needBuild) {
             doConsume(consumer.poll(Duration.ofMillis(500)));
         }
         if (currentThreadCpu() <= 90) {
             time = System.currentTimeMillis();
         }
-        if (System.currentTimeMillis() - currentThreadCpu() > 2 * 60 * 1000) {
+        if (System.currentTimeMillis() - time > 2 * 60 * 1000) {
             needBuild = true;
         }
         try {
