@@ -83,13 +83,13 @@ public abstract class KafkaConsumerAutoRecoveryThread extends Thread {
                 }
             }
         }
-        if (needBuild) {
+        if (!needBuild) {
             doConsume(consumer.poll(Duration.ofMillis(500)));
         }
         if (currentThreadCpu() <= 90) {
             time = System.currentTimeMillis();
         }
-        if (System.currentTimeMillis() - currentThreadCpu() > 2 * 60 * 1000) {
+        if (System.currentTimeMillis() - time > 2 * 60 * 1000) {
             needBuild = true;
         }
         try {
