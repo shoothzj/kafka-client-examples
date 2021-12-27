@@ -10,6 +10,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -59,7 +60,7 @@ public abstract class KafkaConsumerAutoRecoveryThread extends Thread {
             props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
             props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
             props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
-            props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, OffsetResetStrategy.LATEST);
+            props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, OffsetResetStrategy.LATEST.toString().toLowerCase(Locale.ENGLISH));
             props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "5000");
             KafkaConsumer<String, String> consumer = null;
             try {

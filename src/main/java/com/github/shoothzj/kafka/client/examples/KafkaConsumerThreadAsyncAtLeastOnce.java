@@ -26,6 +26,10 @@ public class KafkaConsumerThreadAsyncAtLeastOnce extends KafkaConsumerThread {
         super(topic, groupId);
     }
 
+    public KafkaConsumerThreadAsyncAtLeastOnce(String topic, String groupId, int port) {
+        super(topic, groupId, port);
+    }
+
     @Override
     protected void doConsume(ConsumerRecords<String, String> records) {
         Set<TopicPartition> set = new HashSet<>();
@@ -56,7 +60,7 @@ public class KafkaConsumerThreadAsyncAtLeastOnce extends KafkaConsumerThread {
             if (offsetHelper == null) {
                 continue;
             }
-            commitOffsets.put(topicPartition, new OffsetAndMetadata(offsetHelper.lastCommitOffset));
+            commitOffsets.put(topicPartition, new OffsetAndMetadata(offsetHelper.lastCommitOffset + 1));
         }
         consumer.commitAsync(commitOffsets, (offsets, exception) -> {
             if (exception != null) {

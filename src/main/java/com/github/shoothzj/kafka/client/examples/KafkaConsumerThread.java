@@ -13,6 +13,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -26,13 +27,20 @@ public abstract class KafkaConsumerThread extends Thread {
 
     private final String groupId;
 
+    private final int port;
+
     private boolean initSuccess;
 
     protected KafkaConsumer<String, String> consumer;
 
     public KafkaConsumerThread(String topic, String groupId) {
+        this(topic, groupId, KafkaConstant.DEFAULT_PORT);
+    }
+
+    public KafkaConsumerThread(String topic, String groupId, int port) {
         this.topic = topic;
         this.groupId = groupId;
+        this.port = port;
         this.initSuccess = false;
         this.setName("kafka-consumer-" + topic);
     }
@@ -52,12 +60,12 @@ public abstract class KafkaConsumerThread extends Thread {
     private void safeRun() {
         if (!initSuccess) {
             Properties props = new Properties();
-            props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConstant.BOOTSTRAP_SERVERS);
+            props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, String.format(KafkaConstant.BOOTSTRAP_TEMPLATE, KafkaConstant.DEFAULT_PORT));
             props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
             props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
             props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
             props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
-            props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, OffsetResetStrategy.LATEST);
+            props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, OffsetResetStrategy.LATEST.toString().toLowerCase(Locale.ENGLISH));
             props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "5000");
             KafkaConsumer<String, String> consumer = null;
             try {

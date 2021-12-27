@@ -14,7 +14,15 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class KafkaProducerService {
 
-    private final KafkaProducerInit kafkaProducerInit = new KafkaProducerInit();
+    private final KafkaProducerInit kafkaProducerInit;
+
+    public KafkaProducerService() {
+        this.kafkaProducerInit = new KafkaProducerInit();
+    }
+
+    public KafkaProducerService(int port) {
+        this.kafkaProducerInit = new KafkaProducerInit(port);
+    }
 
     public void sendMsg(String topic, String key, String value) {
         final Producer<String, String> producer = kafkaProducerInit.getProducer();

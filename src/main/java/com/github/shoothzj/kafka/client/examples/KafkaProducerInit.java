@@ -23,9 +23,16 @@ public class KafkaProducerInit {
 
     private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1, threadFactory);
 
+    private final int port;
+
     private volatile Producer<String, String> producer;
 
     public KafkaProducerInit() {
+        this(KafkaConstant.DEFAULT_PORT);
+    }
+
+    public KafkaProducerInit(int port) {
+        this.port = port;
     }
 
     public void init() {
@@ -35,7 +42,7 @@ public class KafkaProducerInit {
     private void initWithRetry() {
         try {
             Properties props = new Properties();
-            props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaConstant.BOOTSTRAP_SERVERS);
+            props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, String.format(KafkaConstant.BOOTSTRAP_TEMPLATE, port));
             props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
             props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
             props.put(ProducerConfig.ACKS_CONFIG, "1");

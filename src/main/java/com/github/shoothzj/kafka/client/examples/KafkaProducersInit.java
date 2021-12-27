@@ -25,7 +25,7 @@ public class KafkaProducersInit {
 
     private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1, threadFactory);
 
-    private CopyOnWriteArrayList<Producer<String, String>> producers;
+    private final CopyOnWriteArrayList<Producer<String, String>> producers = new CopyOnWriteArrayList<>();
 
     private int initIndex;
 
