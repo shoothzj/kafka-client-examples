@@ -69,8 +69,12 @@ public class KafkaProducerService {
                 log.error("kafka msg key {} send failed, exception is ", key, exception);
             });
         } catch (Exception e) {
-            log.error("kafka msg key {} send failed, exception is ", key, e);
-            this.sendMsgWithRetry(topic, key, value, retryTimes + 1, maxRetryTimes);
+            if (retryTimes < maxRetryTimes) {
+                log.warn("kafka msg key {} send failed, begin to retry {} times exception is ", key, retryTimes, e);
+                timer.newTimeout(timeout -> this.sendMsgWithRetry(topic, key, value, retryTimes + 1, maxRetryTimes), 1L << retryTimes, TimeUnit.SECONDS);
+            } else {
+                log.error("kafka msg key {} send failed, exception is ", key, e);
+            }
         }
     }
 
