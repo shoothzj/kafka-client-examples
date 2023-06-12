@@ -22,12 +22,16 @@ public class KafkaConsumerThreadAsyncAtLeastOnce extends KafkaConsumerThread {
 
     private final ConcurrentHashMap<TopicPartition, OffsetHelper> skipListMap = new ConcurrentHashMap<>();
 
-    public KafkaConsumerThreadAsyncAtLeastOnce(String topic, String groupId) {
+    private final long kafkaMaxDiscontinuousOffsetWaitTimeMills;
+
+    public KafkaConsumerThreadAsyncAtLeastOnce(String topic, String groupId, long maxOffsetForwardStuckMills) {
         super(topic, groupId);
+        this.kafkaMaxDiscontinuousOffsetWaitTimeMills = maxOffsetForwardStuckMills;
     }
 
-    public KafkaConsumerThreadAsyncAtLeastOnce(String topic, String groupId, int port) {
+    public KafkaConsumerThreadAsyncAtLeastOnce(String topic, String groupId, int port, long maxOffsetForwardStuckMills) {
         super(topic, groupId, port);
+        this.kafkaMaxDiscontinuousOffsetWaitTimeMills = maxOffsetForwardStuckMills;
     }
 
     @Override
@@ -45,8 +49,19 @@ public class KafkaConsumerThreadAsyncAtLeastOnce extends KafkaConsumerThread {
                 if (first == null) {
                     break;
                 }
+                offsetHelper.setPreviousAckQueueHead(first);
                 if (first == offsetHelper1.lastCommitOffset + 1) {
                     offsetHelper1.lastCommitOffset = first;
+                } else if (kafkaMaxDiscontinuousOffsetWaitTimeMills > 0
+                        && offsetHelper1.previousAckQueueHead > offsetHelper1.lastCommitOffset
+                        && System.currentTimeMillis() - offsetHelper1.ackQueueHeadUpdateTime > this.kafkaMaxDiscontinuousOffsetWaitTimeMills) {
+
+                    // if records are not ordered, like '1 2 5', the local offset will be stuck and never forward,
+                    // so we want set the offset being stuck tolerance wait time
+
+                    log.warn("last commit offset updateTime {} exceed kafka max discontinuous offset wait time {}",
+                            offsetHelper1.ackQueueHeadUpdateTime, kafkaMaxDiscontinuousOffsetWaitTimeMills);
+                    offsetHelper1.lastCommitOffset = offsetHelper1.previousAckQueueHead;
                 } else {
                     offsetHelper1.skipListSet.add(first);
                     break;
@@ -80,11 +95,23 @@ public class KafkaConsumerThreadAsyncAtLeastOnce extends KafkaConsumerThread {
 
         long lastCommitOffset;
 
+        long previousAckQueueHead = -1;
+
+        long ackQueueHeadUpdateTime;
+
         final ConcurrentSkipListSet<Long> skipListSet;
 
         public OffsetHelper(long offset) {
             this.lastCommitOffset = offset;
             this.skipListSet = new ConcurrentSkipListSet<>();
+        }
+
+        public void setPreviousAckQueueHead(long previousAckQueueHead) {
+            if (this.previousAckQueueHead == previousAckQueueHead){
+                return;
+            }
+            this.previousAckQueueHead = previousAckQueueHead;
+            this.ackQueueHeadUpdateTime = System.currentTimeMillis();
         }
     }
 
