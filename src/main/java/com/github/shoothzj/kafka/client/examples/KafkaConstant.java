@@ -11,4 +11,6 @@ public class KafkaConstant {
 
     public static final String BOOTSTRAP_TEMPLATE = "localhost:%d";
 
+    public static final String ERROR_MSG_CORRUPT = "Record is corrupt";
+
 }
